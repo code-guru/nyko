@@ -1,0 +1,39 @@
+
+path {
+    /*fill: none;*/
+    stroke: #FF9D00;
+    stroke-width: .5;
+    stroke-linejoin: round;
+    fill-opacity: 0;
+    stroke-opacity: 1;
+}
+
+.land-glow {
+    fill-opacity: .2;
+    filter: url(#blur);
+}
+
+.land-fill {
+    fill: #fff;
+}
+
+.state-boundary {
+    fill: none;
+    stroke: #777;
+    stroke-width: .70px;
+}
+
+.county-boundary {
+    fill: none;
+}
+
+.land-fill,
+.county-boundary {
+    stroke: #777;
+    stroke-width: .35px;
+}
+
+path:hover {
+    fill-opacity: 0.5;
+    fill: red;
+}
