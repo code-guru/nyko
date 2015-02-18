@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Nyckelkodsområden nivå 2 </title>
+    <link href="assets/css/styles.css" rel="stylesheet" type="text/css" />
+    <link href='http://fonts.googleapis.com/css?family=Special+Elite' rel='stylesheet' type='text/css'>
+</head>
+<body style="font-family: 'Special Elite', cursive;color: #212121 ;">
+    <div id="tooltip"></div><!-- div to hold tooltip. -->
+
+    <div id="container" style="width:960px; margin-left: auto; margin-right: auto;">
+        <div id="desc" style="width:420px;float:left;">
+            <h3>Sundsvall Hushållsavfall</h3>
+            <span style="font-size:12pt">Statistik om allt hushållsavfall som slängts inom Sundsvalls kommun inklusive vilket nyckelkodsområde som varje tömning skett inom.</span>
+        </div>
+        <div id="graphic" style="float: right">
+            <svg width="510" height="600" id="svallsvg"></svg>
+            <div style="text-align: center">Coloring based on average</div>
+        </div>
+
+    </div>
+
+
+    <script type="text/javascript" src="../lib/d3.min.js"></script>
+    <script type="text/javascript" src="../lib/d3.geo.tile.v0.min.js"></script>
+    <script type="text/javascript" src="../lib/topojson.js"></script>
+    <script type="text/javascript" src="../lib/jquery-1.11.2.min.js"></script>
+
+    <script type="text/javascript" src="assets/js/svallPath.js"></script>
+    <script>
+
+        function drawData(rows) {
+            var averageArray = rows.map(function(item){ return item.average});
+            var sumArray = rows.map(function(item){ return item.sum});
+
+            var minAverage = Math.min.apply(this,averageArray);
+            var maxAverage = Math.max.apply(this,averageArray);
+
+            var minSum = Math.min.apply(this,sumArray);
+            var maxSum = Math.max.apply(this,sumArray);
+
+            var data = {};
+
+            rows.forEach(function(row) {
+                console.log((row.average - minAverage)/maxAverage);
+                data[row.nyko] = {
+                    average: row.average,
+                    sum: row.sum,
+                    minimum: row.minimum,
+                    maximum: row.maximum,
+                    //color: d3.interpolate("#C5CAE9", "#1A237E")(row.average/maxAverage)
+                    color: (function(){
+                        var scaleValue = (row.average - minAverage)/(maxAverage - minAverage);
+                        var color;
+                        if(scaleValue < 0.5) {
+                            color = d3.interpolate("#FFFF0F", "#FF6F16")(scaleValue*2);
+                        }else{
+                            color = d3.interpolate("#FF6F16", "#570008")((scaleValue - 0.5)*2);
+                        }
+                        return color;
+                    })()
+                };
+            });
+            svallRegion.draw('#svallsvg', data, regionEventHandler(data));
+        }
+
+        function mapData(row){
+            return {
+                nyko: +row.nyko,
+                average: +row.average,
+                minimum: +row.minimum,
+                maximum: +row.maximum,
+                sum: +row.sum
+            };
+        }
+        function regionEventHandler(data, too) {
+            var toolTipHtml = function (n, d){	/* function to create html content string in tooltip div. */
+                return "<h4>"+n+"</h4><table>"+
+                        "<tr><td>average</td><td>"+(d.average)+" kg</td></tr>"+
+                        "<tr><td>minimum</td><td>"+(d.minimum)+" kg</td></tr>"+
+                        "<tr><td>maximum</td><td>"+(d.maximum)+" kg</td></tr>"+
+                        "<tr><td>sum</td><td>"+(d.sum)+" kg</td></tr>"+
+                        "</table>";
+            };
+
+            function mouseOver(d){
+                d3.select("#tooltip").transition().duration(200).style("opacity", .9);
+
+                d3.select("#tooltip").html(toolTipHtml(d.n, data[d.id]))
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+            }
+
+            function mouseOut(){
+                d3.select("#tooltip").transition().duration(500).style("opacity", 0);
+            }
+
+            return {
+                mouseover: mouseOver,
+                mouseout: mouseOut
+            }
+        }
+
+        d3.csv('../data/waste.csv', mapData, drawData);
+
+
+    </script>
+
+</body>
+</html>
