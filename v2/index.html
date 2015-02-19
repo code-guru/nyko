@@ -37,51 +37,43 @@
     <script type="text/javascript" src="assets/js/svallPath.js"></script>
     <script>
 
-        function drawData(rows) {
-            var averageArray = rows.map(function(item){ return item.average});
-            var sumArray = rows.map(function(item){ return item.sum});
 
+
+        function scaleValueByAverage(id, rows) {
+            var averageArray = rows.map(function(item){ return item.average});
             var minAverage = Math.min.apply(this,averageArray);
             var maxAverage = Math.max.apply(this,averageArray);
+            var item = getItemById(rows, id);
+            return (item.average - minAverage)/(maxAverage - minAverage);
+        }
 
+        function scaleValueBySum(id, rows)  {
+            var sumArray = rows.map(function(item){ return item.sum});
             var minSum = Math.min.apply(this,sumArray);
             var maxSum = Math.max.apply(this,sumArray);
-
-            var data = {};
-
-            rows.forEach(function(row) {
-                console.log((row.average - minAverage)/maxAverage);
-                data[row.nyko] = {
-                    average: row.average,
-                    sum: row.sum,
-                    minimum: row.minimum,
-                    maximum: row.maximum,
-                    //color: d3.interpolate("#C5CAE9", "#1A237E")(row.average/maxAverage)
-                    color: (function(){
-                        var scaleValue = (row.average - minAverage)/(maxAverage - minAverage);
-                        var color;
-                        if(scaleValue < 0.5) {
-                            color = d3.interpolate("#FFFF0F", "#FF6F16")(scaleValue*2);
-                        }else{
-                            color = d3.interpolate("#FF6F16", "#570008")((scaleValue - 0.5)*2);
-                        }
-                        return color;
-                    })()
-                };
-            });
-            svallRegion.draw('#svallsvg', data, regionEventHandler(data));
+            var item = getItemById(rows, id);
+            return (item.sum - minSum)/(maxSum - minSum);
         }
 
-        function mapData(row){
-            return {
-                nyko: +row.nyko,
-                average: +row.average,
-                minimum: +row.minimum,
-                maximum: +row.maximum,
-                sum: +row.sum
-            };
+        function getColoringMethod(scaleMethod){
+            return function(id,rows) {
+                var scaleValue = scaleMethod(id, rows);
+                var color;
+                if(scaleValue < 0.5) {
+                    color = d3.interpolate("#FFFF0F", "#FF6F16")(scaleValue*2);
+                }else{
+                    color = d3.interpolate("#FF6F16", "#570008")((scaleValue - 0.5)*2);
+                }
+                return color;
+            }
         }
-        function regionEventHandler(data, too) {
+
+
+        function getItemById(rows,id){
+            return rows.filter(function(r){return r.id == id})[0];
+        }
+
+        function regionEventHandler(rows) {
             var toolTipHtml = function (n, d){	/* function to create html content string in tooltip div. */
                 return "<h4>"+n+"</h4><table>"+
                         "<tr><td>average</td><td>"+(d.average)+" kg</td></tr>"+
@@ -91,10 +83,10 @@
                         "</table>";
             };
 
-            function mouseOver(d){
+            function mouseOver(d) {
+                var item = getItemById(rows, d.id);
                 d3.select("#tooltip").transition().duration(200).style("opacity", .9);
-
-                d3.select("#tooltip").html(toolTipHtml(d.n, data[d.id]))
+                d3.select("#tooltip").html(toolTipHtml(d.n, item))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px");
             }
@@ -109,7 +101,21 @@
             }
         }
 
-        d3.csv('../data/waste.csv', mapData, drawData);
+        var regions;
+        d3.csv('../data/waste.csv',
+            function(row){
+                return {
+                    id: +row.nyko,
+                    average: +row.average,
+                    minimum: +row.minimum,
+                    maximum: +row.maximum,
+                    sum: +row.sum
+                }
+            },
+            function(rows){
+                regions = new SundvallRegions('#svallsvg', rows, regionEventHandler,getColoringMethod(scaleValueByAverage)).draw();
+            }
+        );
 
 
     </script>
